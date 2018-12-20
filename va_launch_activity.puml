@@ -1,0 +1,83 @@
+@startuml
+title Launch Activity
+box "app process" #Pink
+participant HCallbackStub
+participant VClientImpl as VCImpl
+participant NativeEngine
+participant InvocationStubManager
+participant AppInstrumentation
+participant ActivityThread.mH as mH
+participant ActivityThread
+endbox
+[-> HCallbackStub : handleMessage(LAUNCH_ACTIVITY)
+activate HCallbackStub
+HCallbackStub-> HCallbackStub : handleLaunchActivity
+activate HCallbackStub
+HCallbackStub -> HCallbackStub :
+note left
+ActivityClientRecord = msg.obj
+msg.obj is about StubActivity$Cx
+end note
+HCallbackStub -> VCImpl : bindApplication
+note left : packageName=xx.youku.xx\nprocessName=
+activate VCImpl
+    VCImpl -> VCImpl : bindApplicationNoCheck
+    activate VCImpl
+        VCImpl -> VCImpl : startIOUniformer
+        note left
+        /sys/class/net/wlan0/address ->
+            /data/user/0/io.virtualapp/virtual/data/user/x/wifiMacAddress
+        /sys/class/net/eth0/address ->
+            /data/user/0/io.virtualapp/virtual/data/user/x/wifiMacAddress
+        /sys/class/net/wifi/address ->
+            /data/user/0/io.virtualapp/virtual/data/user/x/wifiMacAddress
+        /data/data/com.youku.phone ->
+            /data/user/0/io.virtualapp/virtual/data/user/x/com.youku.phone
+        /data/user/0/com.youku.phone ->
+            /data/user/0/io.virtualapp/virtual/data/user/x/com.youku.phone
+        /data/user_de/0/com.youku.phone ->
+            /data/user/0/io.virtualapp/virtual/data/user/x/com.youku.phone
+        /data/user/0/io.virtualapp/virtual/data/user/0/com.youku.phone/lib ->
+            /data/user/x/io.virtualapp/virtual/data/app/com.youku.phone/lib
+        /data/data/com.youku.phone/lib/ ->
+            /data/user/0/io.virtualapp/virtual/data/app/com.youku.phone/lib
+        /data/user/0/com.youku.phone/lib/ ->
+            /data/user/0/io.virtualapp/virtual/data/app/com.youku.phone/lib
+        end note
+        activate VCImpl
+            VCImpl -> NativeEngine : redirectDirectory
+        deactivate VCImpl
+        VCImpl -> InvocationStubManager : checkEnv(AppInstrumentation)
+        activate InvocationStubManager
+            InvocationStubManager -> AppInstrumentation : inject
+            activate InvocationStubManager
+            deactivate InvocationStubManager
+        deactivate InvocationStubManager
+    deactivate VCImpl
+deactivate VCImpl
+HCallbackStub -> HCallbackStub :
+note left
+ActivityClientRecord = msg.obj
+set msg.obj.intent =  about <true Activity>
+end note
+
+deactivate HCallbackStub
+HCallbackStub -> mH : handleMessag(LAUNCH_ACTIVITY)
+mH -> ActivityThread : handleLaunchactivity
+activate mH
+ActivityThread -> ActivityThread : performLaunchActivity
+activate ActivityThread
+ActivityThread -> AppInstrumentation : callActivityOnCreate
+ActivityThread -> AppInstrumentation : callActivityOnStart
+
+deactivate ActivityThread
+ActivityThread -> ActivityThread : handleResumeActivity
+activate ActivityThread
+ActivityThread -> ActivityThread : performResumeActivity
+activate ActivityThread
+ActivityThread -> AppInstrumentation : callActivityOnStart
+deactivate ActivityThread
+deactivate ActivityThread
+deactivate mH
+deactivate HCallbackStub
+@enduml
