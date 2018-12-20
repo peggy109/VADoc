@@ -1,0 +1,73 @@
+@startuml
+title Install Package
+box "main process (io.virtual)" #LightBlue
+participant HomePresenterImpl
+participant AppRepository
+participant VirtualCore as VC
+participant VUserManager
+end box
+box "server process (io.virtual:x)" #LightGreen
+participant VAppManagerService as VAppMS
+participant VUserManagerService
+participant PackageCacheManager
+participant PackageSetting
+participant PackagePersistenceLayer
+participant PackageParserEx
+participant VEnvironment
+participant NativeLibraryHelperCompat
+participant UidSystem
+participant VUserHandle
+participant BroadcastSystem
+participant ArtDexOptimizer
+participant DexFile
+end box
+[->HomePresenterImpl : addApp
+HomePresenterImpl -> VC : getInstalledAppInfo
+VC -> HomePresenterImpl : info:InstalledAppInfo
+alt pkg installed already
+    note right of HomePresenterImpl: get next userid for pkg
+    alt userid 不存在
+        HomePresenterImpl -> VUserManager : createUser
+        VUserManager --> VUserManagerService : createUser
+    end
+    HomePresenterImpl -> VC : installPackageAsUser
+    VC ---> VAppMS :  installPackageAsUser
+    VAppMS -> PackageCacheManager : getSetting
+    VAppMS -> PackageSetting : setInstalled
+    VAppMS -> VAppMS : notifyAppInstalled
+    VAppMS -> PackagePersistenceLayer : save
+else pkg not installed yet
+    HomePresenterImpl -> AppRepository : addVirtualApp
+    AppRepository -> VC : installPackage
+    -> VC : installPackage
+    VC ---> VAppMS : installPackage
+    VAppMS -> PackageParserEx : parsePackage
+    VAppMS -> VEnvironment : getDataAppPackageDirectory
+    VEnvironment -> VAppMS : appDir=/data/user/0/io.virtual/virtual/data/app/com.xxx
+    VAppMS -> NativeLibraryHelperCompat : copyNativeBinaries
+    note left : <appDir>/lib/xxx.so
+    alt "if install from sdcard"
+        note right of VAppMS:原dependSystem=false
+        VAppMS -> VAppMS: copy(packageFile, <appDir>/base.apk)
+    end
+    VAppMS -> UidSystem : getOrCreateUid
+    UidSystem -> VAppMS : uid : 10^4 + i
+    VAppMS -> VUserHandle : getAppId
+    VAppMS -> PackageParserEx : savePackageCache
+    VAppMS -> PackageCacheManager : put
+    VAppMS -> PackagePersistenceLayer : save
+    alt "if install from sdcard"
+        VAppMS -> VEnvironment : getOdexFile
+        VEnvironment -> VAppMS : dexfile=/data/user/0/io.virtualapp/virtual/opt/data@app@<com.xxx>-1@base.apk@classes.dex
+        alt "isArt"
+            VAppMS -> ArtDexOptimizer : interpretDex2Oat
+            note right of VAppMS: <appDir>/base.apk -> dexfile
+        else ""
+            VAppMS -> DexFile : loadDex
+            note right of VAppMS: <appDir>/base.apk -> dexfile
+        end
+    end
+    VAppMS -> BroadcastSystem : startApp
+    VAppMS -> VAppMS : notifyAppInstalled
+end
+@enduml
