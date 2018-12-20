@@ -1,0 +1,14 @@
+@startuml
+participant PackageManager as PM
+participant ApplicationPackageManager
+participant PackageManagerService as PMS
+[-> PM : getInstalledPackages
+PM -> ApplicationPackageManager : getInstalledPackagesAsUser
+ApplicationPackageManager ---> PMS : getInstalledPackages
+alt
+PMS -> PMS : mSettings.mPackages.size
+else
+PMS -> PMS : mpackages.size
+end
+
+@enduml
