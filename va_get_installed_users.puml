@@ -1,0 +1,31 @@
+@startuml
+title Get Installed Users
+participant  VirtualCore
+box "server process (io.virtual:x)" #LightGreen
+participant  VAppManagerService
+participant  PackageCacheManager
+participant  VUserManagerService
+end box
+[-> VirtualCore : getInstalledAppInfo
+activate VirtualCore
+VirtualCore --> VAppManagerService : getInstalledAppInfo
+activate VAppManagerService
+VAppManagerService -> PackageCacheManager : getSetting
+activate PackageCacheManager
+PackageCacheManager -> VAppManagerService : setting : PackageSetting
+deactivate PackageCacheManager
+VAppManagerService --> VirtualCore : setting.getAppinfo()
+deactivate VAppManagerService
+deactivate VirtualCore
+|||
+[-> VirtualCore : getPackageInstalledUsers
+VirtualCore --> VAppManagerService : getPackageInstalledUsers
+VAppManagerService -> VUserManagerService : getUserIds
+activate VAppManagerService
+activate VUserManagerService
+VUserManagerService -> VAppManagerService : userIds : int[]
+deactivate VUserManagerService
+note right of VAppManagerService : "<-fileter out userid if not installed"
+VAppManagerService --> VirtualCore : userids
+deactivate VAppManagerService
+@enduml
