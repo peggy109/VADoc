@@ -1,0 +1,69 @@
+@startuml
+title Uninstall Package
+box "main process (io.virtual)" #LightBlue
+participant HomePresenterImpl
+participant AppRepository
+participant VirtualCore as VC
+end box
+box "server process (io.virtual:x)" #LightGreen
+participant VAppManagerService as VAppMS
+participant PackageCacheManager
+participant PackageSetting
+participant PackagePersistenceLayer
+participant VEnvironment
+participant BroadcastSystem
+participant VActivityManagerService
+end box
+-> VC : uninstallPackage
+VC ---> VAppMS : uninstallPackage
+VAppMS -> VAppMS : uninstallPackageFully
+
+[->HomePresenterImpl : deleteApp
+HomePresenterImpl -> VC : getInstalledAppInfo
+VC -> HomePresenterImpl : info:InstalledAppInfo
+alt userid 2 3 N
+HomePresenterImpl -> HomePresenterImpl :
+    note right : userid = MultiplePackageAppData.userId
+else userid 0
+HomePresenterImpl -> HomePresenterImpl :
+    note right : user 0
+end
+
+HomePresenterImpl -> AppRepository : removeVirtualApp
+AppRepository -> VC : uninstallPackageAsUser
+VC ---> VAppMS : uninstallPackageAsUser
+VAppMS -> PackageCacheManager : getSetting
+VAppMS -> VAppMS : getPackageInstalledUsers
+
+alt userids.length == 1
+    VAppMS -> VAppMS : uninstallPackageFully
+    activate VAppMS
+    VAppMS -> BroadcastSystem : stopApp
+    VAppMS -> VActivityManagerService: killAppByPkg
+    VAppMS -> VEnvironment : getPackageResourcePath
+    VEnvironment -> VAppMS : apkpath=/data/user/0/io.virtualapp/virtual/data/app/com.xxx/base.apk
+    note right of VAppMS : delete apkpath
+    VAppMS -> VEnvironment : getDataAppPackageDirectory
+    VEnvironment -> VAppMS : appDir=/data/user/0/io.virtualapp/virtual/data/app/com.xxx
+    note right of VAppMS : delete appDir
+    VAppMS -> VEnvironment : getOdexFile
+    VEnvironment -> VAppMS : dexpath=/data/user/0/io.virtualapp/virtual/opt/data@app@<com.xxx>-1@base.apk@classes.dex
+    note right of VAppMS : delete dexpath
+    VAppMS -> VEnvironment : getDataUserPackageDirectory
+    VEnvironment -> VAppMS : userPkgPath=/data/user/0/io.virtualapp/virtual/data/user/x/com.xxx
+    note right of VAppMS : delete userPkgPath
+    VAppMS -> PackageCacheManager : remove
+    VAppMS -> VAppMS : notifyAppUninstalled
+    activate VAppMS
+    deactivate VAppMS
+    deactivate VAppMS
+else userids.length >= 2
+    VAppMS -> VActivityManagerService: killAppByPkg
+    VAppMS -> PackageSetting : setInstalled
+    VAppMS -> VAppMS : notifyAppUninstalled
+    VAppMS -> PackagePersistenceLayer : save
+    VAppMS -> VEnvironment : getDataUserPackageDirectory
+    VEnvironment -> VAppMS : userPkgPath=/data/user/0/io.virtualapp/virtual/data/user/x/com.xxx
+    note right of VAppMS : delete userPkgPath
+end
+@enduml
