@@ -1,7 +1,11 @@
 @startuml
 title Start Server Process Or App Process
-participant VApp
 box "main or server or app process" #LightBlue
+participant ActivityThread
+participant LoadedApk
+participant Instrumentation
+participant Application
+participant VApp
 participant VirtualCore as VC
 participant InvocationStubManager as ISM
 end box
@@ -12,42 +16,49 @@ participant Proxy
 participant MethodInvocationProxy
 participant PackageManagerStub
 endbox
-
-[-> VApp : attachBaseContext
-VApp -> VC : startup
-VC -> ISM: init
-ISM -> ISM : injectInteranl
-activate ISM
-ISM -> ActivityManagerStub : construct
-activate ActivityManagerStub
-activate ISM
-ActivityManagerStub -> MethodInvocationStub : construct
-activate MethodInvocationStub
-MethodInvocationStub -> Proxy : newProxyInstance
-deactivate MethodInvocationStub
-ActivityManagerStub -> MethodInvocationProxy : super construct
-activate MethodInvocationProxy
-MethodInvocationProxy -> MethodInvocationProxy : onBindMethods
-activate MethodInvocationProxy
-deactivate MethodInvocationProxy
-deactivate MethodInvocationProxy
-deactivate ActivityManagerStub
-deactivate ISM
-deactivate ISM
-VC -> ISM: injectAll
-activate ISM
-ISM -> ActivityManagerStub : inject
-ISM -> PackageManagerStub : inject
-alt
-ISM -> WindowManagerStub : inject
-note left : if VAppProcess
-ISM -> ClipBoardStub : inject
-ISM -> TelephonyStub : inject
-ISM -> HCallbackStub : inject
-end
-ISM -> ISM : addInject(AppInstrumentation)
-activate ISM
-deactivate ISM
-deactivate ISM
+ActivityThread -> LoadedApk : attachBaseContext
+LoadedApk -> Instrumentation : newApplication
+activate Instrumentation
+    Instrumentation -> Instrumentation : newApplication
+    activate Instrumentation
+        Instrumentation -> Application : attach
+        Application-> VApp : attachBaseContext
+        VApp -> VC : startup
+        VC -> ISM: init
+        ISM -> ISM : injectInteranl
+        activate ISM
+            ISM -> ActivityManagerStub : construct
+            activate ActivityManagerStub
+                activate ISM
+                    ActivityManagerStub -> MethodInvocationStub : construct
+                    activate MethodInvocationStub
+                        MethodInvocationStub -> Proxy : newProxyInstance
+                    deactivate MethodInvocationStub
+                    ActivityManagerStub -> MethodInvocationProxy : super construct
+                    activate MethodInvocationProxy
+                        MethodInvocationProxy -> MethodInvocationProxy : onBindMethods
+                        activate MethodInvocationProxy
+                        deactivate MethodInvocationProxy
+                    deactivate MethodInvocationProxy
+                deactivate ActivityManagerStub
+            deactivate ISM
+        deactivate ISM
+        VC -> ISM: injectAll
+        activate ISM
+            ISM -> ActivityManagerStub : inject
+            ISM -> PackageManagerStub : inject
+            alt
+                ISM -> WindowManagerStub : inject
+                note left : if VAppProcess
+                ISM -> ClipBoardStub : inject
+                ISM -> TelephonyStub : inject
+                ISM -> HCallbackStub : inject
+            end
+            ISM -> ISM : addInject(AppInstrumentation)
+            activate ISM
+            deactivate ISM
+        deactivate ISM
+    deactivate Instrumentation
+deactivate Instrumentation
 
 @enduml
