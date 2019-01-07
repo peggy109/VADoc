@@ -1,0 +1,29 @@
+@startuml
+[-> VAMS : startProcessIfNeedLocked
+VAMS -> VAMS : queryFreeStubProcessLocked
+VAMS -> VAMS : processStartProcess
+activate VAMS
+    VAMS -> ProcessRecord : create
+deactivate VAMS
+[--->VAMS : startActivity
+VAMS -> ActivityStack : startActivityLocked
+activate ActivityStack
+alt
+    ActivityStack ->ActivityStack : startActivityInNewTaskLocked
+    activate ActivityStack
+        ActivityStack -> ActivityStack : startActivityProcess
+        note right : destIntent
+        activate ActivityStack
+            ActivityStack -> ActivityStack : fetchStubActivity
+            activate ActivityStack
+            note right : com.lody.virtual.client.stub.StubActivity$CX
+            deactivate ActivityStack
+        deactivate ActivityStack
+        ActivityStack -> Context : startActivity
+    deactivate ActivityStack
+else
+    ActivityStack ->ActivityStack : startActivityProcess
+    ActivityStack ->ActivityStack : startActivityFromSourceTask
+end
+deactivate ActivityStack
+@enduml
