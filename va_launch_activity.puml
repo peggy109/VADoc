@@ -1,5 +1,5 @@
 @startuml
-title Launch Activity
+title VA_Launch_Activity
 box "app process" #Pink
 participant HCallbackStub
 participant VClientImpl as VCImpl

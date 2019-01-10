@@ -1,4 +1,21 @@
 @startuml
+box "va" #LightGreen
+participant VAMS
+participant ProcessRecord
+participant "ActivityStack(V)" as VActivityStack
+participant ContextImpl
+participant Instrumentation
+participant Proxy
+participant MethodInvocationStub.HookInvocationHandler as HookInvocationHandler
+participant StartActivity
+participant HCallbackStub
+end box
+box "system_server" #LightYellow
+participant AMS
+end box
+box "App Process" #LightBlue
+participant  ActivityThread.ApplicationThread
+end box
 [-> VAMS : startProcessIfNeedLocked
 VAMS -> VAMS : queryFreeStubProcessLocked
 VAMS -> VAMS : processStartProcess
@@ -6,24 +23,36 @@ activate VAMS
     VAMS -> ProcessRecord : create
 deactivate VAMS
 [--->VAMS : startActivity
-VAMS -> ActivityStack : startActivityLocked
-activate ActivityStack
+VAMS -> VActivityStack : startActivityLocked
+activate VActivityStack
 alt
-    ActivityStack ->ActivityStack : startActivityInNewTaskLocked
-    activate ActivityStack
-        ActivityStack -> ActivityStack : startActivityProcess
+    VActivityStack ->VActivityStack : startActivityInNewTaskLocked
+    activate VActivityStack
+        VActivityStack -> VActivityStack : startActivityProcess
         note right : destIntent
-        activate ActivityStack
-            ActivityStack -> ActivityStack : fetchStubActivity
-            activate ActivityStack
+        activate VActivityStack
+            VActivityStack -> VActivityStack : fetchStubActivity
+            activate VActivityStack
             note right : com.lody.virtual.client.stub.StubActivity$CX
-            deactivate ActivityStack
-        deactivate ActivityStack
-        ActivityStack -> Context : startActivity
-    deactivate ActivityStack
+            deactivate VActivityStack
+        deactivate VActivityStack
+        VActivityStack -> ContextImpl : startActivity
+        ContextImpl -> Instrumentation : execStartActivity
+        Instrumentation -> Proxy : startActivity
+        Proxy -> Proxy : invoke
+        Proxy -> HookInvocationHandler : invoke
+        HookInvocationHandler -> StartActivity : call
+        StartActivity -> AMS : startActivity
+        AMS --> ActivityThread.ApplicationThread : scheduleLaunchActivity
+        note right : Ignore Process
+        ActivityThread.ApplicationThread ---> HCallbackStub : handleMessage
+        note right : (LAUNCH_ACTIVITY)
+        HCallbackStub -> HCallbackStub : handleLaunchActivity
+        note right: see VA_Launch_Activity
+    deactivate VActivityStack
 else
-    ActivityStack ->ActivityStack : startActivityProcess
-    ActivityStack ->ActivityStack : startActivityFromSourceTask
+    VActivityStack ->VActivityStack : startActivityProcess
+    VActivityStack ->VActivityStack : startActivityFromSourceTask
 end
-deactivate ActivityStack
+deactivate VActivityStack
 @enduml

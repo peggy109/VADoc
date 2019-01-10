@@ -55,6 +55,10 @@ activate Instrumentation
                 ISM -> ClipBoardStub : inject
                 ISM -> TelephonyStub : inject
                 ISM -> HCallbackStub : inject
+                activate HCallbackStub
+                    HCallbackStub -> HCallbackStub : otherCallback = VirtualCore.mainThread().mH.mCallback
+                    HCallbackStub -> HCallbackStub : VirtualCore.mainThread().mH = HCallbackStub.this
+                deactivate HCallbackStub
             end
             ISM -> ISM : addInject(AppInstrumentation)
             activate ISM
