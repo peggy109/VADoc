@@ -16,7 +16,9 @@ participant Proxy
 participant MethodInvocationProxy
 participant PackageManagerStub
 endbox
-ActivityThread -> LoadedApk : attachBaseContext
+ActivityThread.ApplicationThread ---> ActivityThread.H : handleMessge(BIND_APPLICATION)
+ActivityThread.H-> ActivityThread : handleBindApplication
+ActivityThread -> LoadedApk : makeApplication
 LoadedApk -> Instrumentation : newApplication
 activate Instrumentation
     Instrumentation -> Instrumentation : newApplication
